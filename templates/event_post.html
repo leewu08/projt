@@ -56,7 +56,7 @@
               <small>장소: {{ event.location }}</small>
               <small>카테고리: {{ event.category }}</small>
               <small>{{ event.created_at }}</small>
-              <small>{{ event.views }} 조회수</small>
+              <small> 조회수{{ event.views }}</small>
               {% if event.filename %}
               <img src="{{ url_for('static', filename='uploads/' + event.filename) }}" width="500"/><br><br>
               {% endif %}

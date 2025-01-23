@@ -12,7 +12,7 @@ class DBManager:
     def connect(self):
         try:
             self.connection = mysql.connector.connect(
-                host="10.0.66.15",
+                host="10.0.66.8",
                 user="sejong",
                 password="1234",
                 database="board_db3"
@@ -57,7 +57,7 @@ class DBManager:
         try:
             self.connect()
             offset = (page - 1) * per_page  # OFFSET을 계산
-            sql = 'SELECT * FROM posts LIMIT %s OFFSET %s'
+            sql = 'SELECT * FROM posts ORDER BY created_at DESC LIMIT %s OFFSET %s'##(order by를 넣음으로서, 최신에 작성한 문서가 제일위로오게)
             self.cursor.execute(sql, (per_page, offset))
             return self.cursor.fetchall()  # 지정된 페이지에 해당하는 게시글들 반환
         except mysql.connector.Error as error:
@@ -105,7 +105,7 @@ class DBManager:
     def counting_view(self,id):
         try:
             self.connect()
-            sql = "update posts set views = view+1 WHERE id = %s"
+            sql = "update posts set views = views+1 WHERE id = %s"
             value = (id,) # 튜플 1개 일때
             self.cursor.execute(sql, value)
             self.connection.commit()  # 변경사항을 DB에 반영
@@ -121,13 +121,35 @@ class DBManager:
                 return post
             else:
                 return None  # 게시글이 없으면 None 반환
-            
-            
         except mysql.connector.Error as error:
             print(f"내용 조회 실패: {error}")
             return None
         finally:
             self.disconnect()
+            
+    # def like_it(self,id):
+    #     try:
+    #         self.connect()
+    #         sql = "update posts set likes = likes+1 WHERE id = %s"
+    #         value = (id,) # 튜플 1개 일때
+    #         self.cursor.execute(sql, value)
+    #         self.connection.commit()  # 변경사항을 DB에 반영
+            
+            
+    #         # 게시글 정보 조회
+    #         sql_select = "SELECT * FROM posts WHERE id = %s"
+    #         self.cursor.execute(sql_select, value)
+    #         post = self.cursor.fetchone()  # 게시글 정보 가져오기
+
+    #         if post:
+    #             return post
+    #         else:
+    #             return None  # 게시글이 없으면 None 반환
+    #     except mysql.connector.Error as error:
+    #         print(f"내용 조회 실패: {error}")
+    #         return None
+    #     finally:
+    #         self.disconnect()
    
     def get_post_by_id(self, id):
         try:
@@ -168,6 +190,7 @@ class DBManager:
             self.disconnect()
     
     def delete_post(self, id):
+        
         try:
             self.connect()
             sql = "DELETE FROM posts WHERE id = %s"
@@ -258,7 +281,7 @@ class DBManager:
         try:
             self.connect()
             offset = (page - 1) * per_page  # OFFSET을 계산
-            sql = 'SELECT * FROM events LIMIT %s OFFSET %s'
+            sql = 'SELECT * FROM events ORDER BY created_at DESC LIMIT %s OFFSET %s' ##(order by를 넣음으로서, 최신에 작성한 문서가 제일위로오게)
             self.cursor.execute(sql, (per_page, offset))
             return self.cursor.fetchall()  # 지정된 페이지에 해당하는 게시글들 반환
         except mysql.connector.Error as error:
@@ -328,7 +351,8 @@ class DBManager:
             return None
         finally:
             self.disconnect()
-   
+ 
+
     def get_event_by_id(self, id):
         try:
             self.connect()
@@ -384,3 +408,50 @@ class DBManager:
             return False
         finally:
             self.disconnect()
+
+
+
+# 댓글기능
+
+    def insert_comment(self, content, userid, post_id):
+        try:
+            self.connect()
+            sql = """
+            INSERT INTO comments (content, userid, post_id ,created_at)
+            VALUES (%s, %s, %s,%s)
+            """
+            values = (content,userid,post_id,datetime.now())            
+            self.cursor.execute(sql, values)   
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"내용 추가 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+            
+    def comment_view(self,id):
+        try:
+            self.connect()
+            sql = 'SELECT * FROM comments WHERE post_id =%s' 
+            self.cursor.execute(sql,(id,))
+            return self.cursor.fetchall()  # 지정된 페이지에 해당하는 게시글들 반환
+        except mysql.connector.Error as error:
+            print(f'게시글 조회 실패 : {error}')
+            return []
+        finally:
+            self.disconnect()        
+            
+    def check_id(self,id):
+        try:
+            self.connect()
+            sql = 'SELECT userid FROM posts WHERE id =%s' 
+            self.cursor.execute(sql,(id,))
+            poster=self.cursor.fetchone() # 지정된 페이지에 해당하는 게시글들 반환
+            return poster 
+        except mysql.connector.Error as error:
+            print(f'게시글 조회 실패 : {error}')
+            return []
+        finally:
+            self.disconnect()        

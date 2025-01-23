@@ -61,25 +61,36 @@ def add_post():
             
         
         if manager.insert_post(title,content,filename,userid):
-            return redirect("/")
+            return redirect(url_for('post'))
         return "게시글 추가 실패", 400        
     return render_template('add.html')
 
 # 내용보기# 내용보기
-@app.route('/post/<int:id>')   # 내용 보기 ( 하나만 보는거 )
+@app.route('/post/<int:id>')   # 내용 보기 ### (comments)
 def view_post(id):
     
     post = manager.get_post_by_id(id) #내용 보기 (디테일 보는거)
+    
     manager.counting_view(id)
-    return render_template('view.html',post=post)
+    
+    comments=manager.comment_view(id)
+    return render_template('view.html',post=post,comments=comments)
 
 @app.route('/post/edit/<int:id>', methods=['GET', 'POST']) ## 게시글 수정
 def edit_post(id):
-    
+    ##check id를 위해 userid를 변수로 저장
+    userid= session['userid']
+
     if 'userid' not in session:
         
         flash("로그인을 하세요.")
         return redirect(url_for('login'))  # 로그인 페이지 경로를 'login'으로 설정한다고 가정
+    ## checkid라는걸 하기위해 post_man이라는 변수에 값을 저장
+    post_man = manager.check_id(id)## 여기서 반환하는값은 fetchone 으로 받게되어,dictionary=true의 세팅으로 받게된 반환값은 dictionary 구조 임
+
+    if post_man['userid'] != userid: ## 딕셔너리 구조라서 항상 다르게 출력되었어서, post_man 변수뒤에['userid']를 달아줌( 이렇게되면 밸류값만 출력 )
+        flash("이시끼야 니가만든거아니잖아")
+        return redirect(url_for('view_post',id=id))    ## 수정,삭제에 실패하게되면, view_post 함수에 들렀다 오기때문에 view함수에 있는 조회수에 들렀다와서 뷰수가 늘어나고있음.
     
     post = manager.get_post_by_id(id)
     if request.method == 'POST':
@@ -95,22 +106,26 @@ def edit_post(id):
         if manager.update_post(id,title,content,filename):
             return redirect("/")
         return "게시글 추가 실패", 400        
-    return render_template('edit.html',post=post)
+    return render_template('edit.html',post=post) 
 
 @app.route('/post/delete/<int:id>')  #게시글 삭제
 def deleting_post(id):
+    userid= session['userid']
     if 'userid' not in session:
         
         flash("로그인을 하세요.")### 일단 로그인을 해야 삭제가 되게끔 까지만 처리상태, 나중에 동일한 userid 일때만 처리되게끔 작업해야.
         return redirect(url_for('login'))  # 로그인 페이지 경로를 'login'으로 설정한다고 가정
-    
-    
-    if 'userid' not in session:
-        return redirect(url_for('login'))  # 로그인 페이지 경로를 'login'으로 설정한다고 가정
+
+    post_man = manager.check_id(id)
+
+    if post_man['userid'] != userid: ## 딕셔너리 구조라서 항상 다르게 출력됬었음..
+        flash("이시끼야 니가만든거아니잖아")
+        return redirect(url_for('view_post',id=id))
     
     if manager.delete_post(id):
-        return redirect(url_for('index'))
+        return redirect(url_for('view_post',id=id))
     return "게시글 삭제 실패", 400
+
 
 
 
@@ -274,6 +289,21 @@ def deleting_event(id):
         return redirect(url_for('index'))
     return "게시글 삭제 실패", 400
 
+@app.route('/comment/add/<int:post_id>', methods=['GET', 'POST']) ## 게시글 추가
+def add_comment(post_id):
+    if 'userid' not in session:
+        return redirect(url_for('login'))  # 로그인 페이지 경로를 'login'으로 설정한다고 가정
+    
+    userid = session['userid']  # 로그인한 사용자 ID 가져오기
+    
+    if request.method == 'POST':
+        comment = request.form['comment']
+
+        if manager.insert_comment(comment, userid, post_id): ## (comment, userid, post_id 넘겨주는값에 post_id도 포함이되어야 내가원하는 게시글에 댓글생성)
+ ### 리다이렉트 url_for로 다른 렌더링 함수를 넣게되면 그리로 들어가게되는데, 대상 동적변수, 함수내에서 지정받은 변수를 입력하게되면 된다.
+            return redirect(url_for('view_post',id=post_id))
+        return "게시글 추가 실패", 400        
+    return render_template('view.html')
 
 
 if __name__ == '__main__':
