@@ -106,15 +106,16 @@
         <a href="/post/add" class="btn btn-primary mb-3">게시글 추가</a>
         
         <div class="list-group" flex-basis: 30%;><thead>
-        <tr>
-            <!-- 테이블 제목 -->
-            <th>제목</th>
-            <th>이미지</th>
-            <th>내용</th>
-            <th>생성일</th>
-            <th>조회수</th>
-        </tr>
-    </thead>
+
+            <thead>
+                <tr>
+                    <th>제목</th>
+                    <th>이미지</th>
+                    <th>내용</th>
+                    <th>생성일</th>
+                    <th>조회수</th>
+                </tr>
+            </thead>
           {% for post in posts %}
     <table class="post-table">
         <tr class="post-row">

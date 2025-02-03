@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block stylesheet %}
+<style>.event-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  .event-image {
+    width: 100%;  /* 이미지의 크기를 전체로 맞추기 */
+    height: 200px;  /* 고정된 높이 */
+    object-fit: cover;  /* 이미지 크기에 맞게 잘라내기 */
+  }
+  
+  .event-details {
+    text-align: center;
+    padding-top: 10px;
+  }
+  
+/* 그리드 시스템에서 각 항목에 마진 추가 */
+.col-md-4 {
+  padding: 10px;
+}
+
+/* 각 이벤트 항목을 일정 크기로 유지 */
+.event-details {
+  text-align: center; /* 텍스트 중앙 정렬 */
+  margin-top: 10px;
+}
+
+.event-item strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 10px;
+        text-align: center;
+        border: 1px solid #ccc;
+    }
+
+    th {
+        background-color: #f0f0f0;
+    }
+
+    td {
+        background-color: #f9f9f9;
+    }
+
+    .empty {
+        background-color: #e0e0e0;
+    }
+
+    .clickable-day {
+        cursor: pointer;
+        color: #007bff;
+    }
+
+    .clickable-day:hover {
+        text-decoration: underline;
+    }
+
+    /* 이벤트 리스트 스타일 */
+    ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .event-list-item {
+        padding: 5px 0;
+    }
+
+    #event-details {
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+
+    <h1>{{ year }}년 {{ month }}월</h1>
+
+    <!-- "이전 달" 및 "다음 달" 링크 -->
+    <a href="{{ url_for('show_calendar', year=year, month=month-1) }}">이전 달</a>
+    <a href="{{ url_for('show_calendar', year=year, month=month+1) }}">다음 달</a>
+
+    <table>
+        <thead>
+            <tr>
+                <th>일</th>
+                <th>월</th>
+                <th>화</th>
+                <th>수</th>
+                <th>목</th>
+                <th>금</th>
+                <th>토</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for week in cal %}
+            <tr>
+                {% for day in week %}
+                <td class="{% if day == 0 %}empty{% endif %}">
+                    {% if day != 0 %}
+                    <!-- 클릭 가능한 날짜 요소 -->
+                    <strong class="clickable-day" data-day="{{ day }}" data-month="{{ month }}" data-year="{{ year }}">
+                        {{ day }}
+                    </strong>
+
+                    <!-- 해당 날짜에 해당하는 이벤트를 표시할 영역 -->
+                    <ul class="event-list">
+                        {% for event in events %}
+                        {% if event.start_date.strftime('%Y-%m-%d') == '{:04d}-{:02d}-{:02d}'.format(year, month, day)
+                        %}
+                        <li class="event-list-item">
+                            <strong>{{ event.title }}</strong>: {{ event.description }}
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+<!-- 이벤트 목록을 출력할 공간 -->
+<div id="event-list"></div>
+
+{% endblock %}
+{% block script %}
+<script>document.querySelectorAll('.clickable-day').forEach(function(dayElement) {
+    dayElement.addEventListener('click', function() {
+      const day = this.dataset.day;
+      const month = this.dataset.month;
+      const year = this.dataset.year;
+      console.log("날짜 클릭됨:", day, month, year);
+  
+      // 날짜 클릭 시, 해당 날짜에 대한 이벤트를 가져오기 위한 AJAX 요청
+      fetch(`/get_events_for_date?day=${day}&month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("이벤트 데이터:", data.events);
+          const eventListContainer = document.getElementById('event-list');
+          
+          // 이전에 렌더링된 이벤트 리스트 비우기
+          eventListContainer.innerHTML = '';
+  
+          // 한 번에 3개씩 그리드로 보여줄 수 있도록 row 클래스를 한 번만 추가
+          const rowElement = document.createElement('div');
+          rowElement.classList.add('row');  // row 클래스를 추가
+  
+          // 이벤트가 있다면 각 이벤트를 HTML로 렌더링
+          data.events.forEach(event => {
+            // filename이 있을 경우 파일명을 포함하여 렌더링
+            let eventHtml = `
+                            <div class="event-item">
+                                <div class="event-columns">
+                                <!-- 이미지 부분 -->
+                                ${event.filename ? 
+                                    `<a href="/event/${event.id}">
+                                        <img src="${window.location.origin}/static/uploads/${event.filename}" alt="${event.title}" class="event-image" />
+                                    </a>` : 
+                                    `<a href="/event/${event.id}">
+                                        <img src="${window.location.origin}/static/uploads/thanos-gangnam-style.gif" alt="No Image" class="event-image" />
+                                    </a>`
+                                }
+
+                                <!-- 텍스트 부분 -->
+                                <div class="event-details">
+                                    <a href="/event/${event.id}">
+                                    <strong>${event.title}</strong>
+                                    </a>
+                                    <strong>${new Date(event.start_date).toLocaleDateString('en-GB')}</strong>
+                                </div>
+                                </div>
+                            </div>
+                            `;
+  
+            // 렌더링된 HTML을 row에 추가
+            rowElement.innerHTML += eventHtml;  // 각 이벤트의 HTML을 row 내부에 추가
+          });
+  
+          // eventListContainer에 rowElement를 추가
+          eventListContainer.appendChild(rowElement);
+        })
+        .catch(error => {
+          console.error("이벤트를 불러오는 중 오류가 발생했습니다:", error);
+        });
+    });
+  });
+  
+
+  </script>
+  
+{% endblock %}

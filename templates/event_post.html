@@ -2,95 +2,318 @@
 
 {% block stylesheet %}
 
-<style> img{
-     width: 70px;
-     height: 70px;
-}
-.pagination {
-  display: flex;
-  justify-content: center;
-  padding: 0;
-  list-style-type: none;
+<style>
+  /* ===================== 기본 텍스트 스타일 ===================== */
+
+  .entryfee {
+    color: #7a69b8;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  /* ===================== 이미지 스타일 ===================== */
+
+  img {
+    width: 70px;
+    height: 70px;
+  }
+
+  /* ===================== 페이지네이션 스타일 ===================== */
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    list-style-type: none;
+  }
+
+  .pagination li {
+    margin: 0 5px;
+  }
+
+  .pagination a {
+    text-decoration: none;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  .pagination a.disabled {
+    color: #ccc;
+    pointer-events: none;
+    border-color: #ddd;
+  }
+
+  .pagination a.active {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    border-color: #0056b3;
+    cursor: default;
+  }
+
+  /* ===================== 정사각형 칼럼 스타일 ===================== */
+
+  .square-column {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
+    overflow: hidden;
+  }
+
+  .event-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    object-fit: cover;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border: 1px solid #ddd;
+  }
+
+  .event-details {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    padding: 10px;
+    box-sizing: border-box;
+    color: #333;
+  }
+
+  /* ===================== 고정 네비게이션 스타일 ===================== */
+/* ===================== 고정 네비게이션 스타일 ===================== */
+
+
+
+/* 이벤트 리스트 마진 조정 */
+#events-list {
+    margin-right: 270px; /* 네비게이션 너비만큼 오른쪽 여백을 추가하여 겹치지 않게 */
 }
 
-.pagination li {
-  margin: 0 5px;
+/* 네비게이션 내 버튼 스타일 */
+.navbar-fixed a {
+    margin-bottom: 10px;
+    display: block;
 }
 
-.pagination a {
-  text-decoration: none;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+/* 필터링 버튼 */
+#filter-toggle-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
 }
-/* 비활성화된 버튼 */
-.pagination a.disabled {
-  color: #ccc;
-  pointer-events: none;
-  border-color: #ddd;
+
+#filter-toggle-btn:hover {
+    background-color: #0056b3;
 }
-/* 활성화된 페이지 번호 스타일 */
-.pagination a.active {
-  background-color: #007bff; /* 배경색 */
-  color: white; /* 글자색 */
-  font-weight: bold; /* 글씨 굵게 */
-  border-color: #0056b3; /* 경계선 색 */
-  cursor: default; /* 커서 스타일 변경 */
+
+/* 필터링 리스트 */
+.filter-list {
+    display: none;
+    margin-top: 15px;
+}
+
+.filter-list.show {
+    display: block;
+}
+
+/* ===================== 카테고리 체크박스 스타일 ===================== */
+
+.category-checkbox {
+    margin-right: 10px;
+}
+
+#category-filter-form div {
+    margin-bottom: 10px;
+}
+
+.filter-list.open {
+    display: block;
 }
 
 
- </style>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  /* ===================== 이벤트 목록 스타일 ===================== */
+
+  #events-list {
+    margin-right: 270px;
+    /* 네비게이션 공간을 고려한 마진 */
+  }
+
+  .toggle-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+  }
+
+  .filter-list.open {
+    display: block;
+  }
+
+  </style>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 {% endblock %}
+
 {% block main %}
-    <div class="container">
-      <h1 class="mt-4">이벤트 목록</h1>
-      <a href="/event/add" class="btn btn-primary mb-3">게시글 추가</a>
-      <div class="list-group">
-          {% for event in events %}
-          <a href="/event/{{ event.id }}" class="list-group-item list-group-item-action">
-              <h5 class="mb-1">{{ event.title }}</h5>
-              
-              <p class="mb-1">{{ event.description[:100] }}...</p> <!-- 내용 일부만 표시 -->
-              <small>{{ event.start_date }} ~ {{ event.end_date }}</small> <!-- 시작일과 종료일 표시 -->
-              <small>장소: {{ event.location }}</small>
-              <small>카테고리: {{ event.category }}</small>
-              <small>{{ event.created_at }}</small>
-              <small> 조회수{{ event.views }}</small>
-              {% if event.filename %}
-              <img src="{{ url_for('static', filename='uploads/' + event.filename) }}" width="500"/><br><br>
-              {% endif %}
-              {% if not event.filename %}
-              <img src="{{ url_for('static', filename='uploads/04.jpg/') }}" width="500"/><br><br>
-              {% endif %}
-          </a>
-          {% endfor %}
+<header class="navbar">
+
+  <!-- 새 이벤트 추가 버튼 -->
+  <a href="{{ url_for('add_event') }}" id="add-event-btn">새 이벤트 추가</a>
+  <!-- 지도보기 버튼-->
+  <a href="{{ url_for('map_view') }}">지도 페이지로 이동</a>
+
+
+  <!-- 달력 보기 버튼 -->
+  <a href="{{ url_for('show_calendar', year=2025, month=2) }}" id="calendar-btn">
+    <i class="bi bi-calendar-week"></i> 달력 보기
+  </a>
+
+  <!-- 카테고리 필터링 버튼 -->
+  <button id="filter-toggle-btn">카테고리 필터링</button>
+
+  <!-- 카테고리 체크박스 리스트 -->
+  <div class="filter-list" id="filter-list">
+    <form id="category-filter-form">
+      {% for category in categories %}
+      <div>
+        <input type="checkbox" class="category-checkbox" value="{{ category }}" id="category-{{ category }}">
+        <label for="category-{{ category }}">{{ category }}</label>
+      </div>
+      {% endfor %}
+    </form>
+  </div>
+
+</header>
+  <!-- 이벤트 목록 -->
+   
+  <div id="container-fluid" class="row">
+    {% for event in events %}
+    <div class="col-lg-4 col-md-6 col-12 mb-4 event" data-category="{{ event.category }}"> <!-- 각 이벤트에 data-category 추가 -->
+      <div class="square-column">
+        <!-- 이미지 영역 -->
+        <a href="{{ url_for('view_event', id=event.id) }}">
+          {% if event.filename %}
+          <img src="{{ url_for('static', filename='uploads/' + event.filename) }}" class="event-image"
+            alt="Event Image" />
+          {% else %}
+          <img src="{{ url_for('static', filename='uploads/thanos-gangnam-style.gif') }}" class="event-image"
+            alt="Event Image" />
+          {% endif %}
+        </a>
+        <!-- 텍스트 영역 -->
+        <div class="event-details">
+          <small style="font-size: 10px; color: #888;">
+            {% if event.start_date.year == 2025 %}
+            {{ event.start_date.strftime('%m-%d') }} {{event.location}}
+            {% else %}
+            {{ event.start_date.strftime('%Y-%m-%d') }} {{event.location}}
+            {% endif %}
+          </small><br>
+          <h5 style="font-size: 16px; font-weight: bold;">{{ event.title }}</h5>
+
+          <!-- 참가비 출력 -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            {% if event.entryfee == 0 %}
+            <small class="entryfee" style="font-size: 13px;">참가비: 무료</small>
+            {% else %}
+            <small class="entryfee" style="font-size: 13px;">참가비: {{ event.entryfee }}원~</small>
+            {% endif %}
+            <small style="color: #acacac;">조회 {{event.views}}</small>
+          </div>
+        </div>
       </div>
     </div>
-    <!-- 페이지네이션 컨테이너 -->
-    <div class="pagination-container">
-        <div class="pagination">
-            <!-- 이전 페이지 링크 (비활성화 적용) -->
-            {% if current_page > 1 %}
-                <a href="{{ url_for('event', page=current_page - 1) }}">이전</a>
-            {% else %}
-                <a href="#" class="disabled">이전</a> <!-- 비활성화된 '이전' 버튼 -->
-            {% endif %}
+    {% endfor %}
+  </div>
 
-            <!-- 페이지 번호 링크 -->
-            {% for page_num in range(1, total_pages + 1) %}
-                <a href="{{ url_for('event', page=page_num) }}" 
-                   {% if page_num == current_page %} class="active" {% endif %}>
-                   {{ page_num }}
-                </a>
-            {% endfor %}
-            
+<!-- 페이지네이션 컨테이너 -->
+<div class="pagination-container">
+  <div class="pagination">
+    <!-- 이전 페이지 링크 (비활성화 적용) -->
+    {% if current_page > 1 %}
+      <a href="{{ url_for('event', page=current_page - 1) }}">이전</a>
+    {% else %}
+      <a href="#" class="disabled">이전</a>
+    {% endif %}
 
-            <!-- 다음 페이지 링크 (비활성화 적용) -->
-            {% if current_page < total_pages %}
-                <a href="{{ url_for('event', page=current_page + 1) }}">다음</a>
-            {% else %}
-                <a href="#" class="disabled">다음</a> <!-- 비활성화된 '다음' 버튼 -->
-            {% endif %}
-    </div>
-    {% endblock %}
+    <!-- 페이지 번호 링크 -->
+    {% for page_num in range(1, total_pages + 1) %}
+      <a href="{{ url_for('event', page=page_num) }}" {% if page_num == current_page %} class="active" {% endif %}>
+        {{ page_num }}
+      </a>
+    {% endfor %}
+
+    <!-- 다음 페이지 링크 (비활성화 적용) -->
+    {% if current_page < total_pages %}
+      <a href="{{ url_for('event', page=current_page + 1) }}">다음</a>
+    {% else %}
+      <a href="#" class="disabled">다음</a>
+    {% endif %}
+  </div>
+
+</div>
+
+  {% endblock %}
+  {% block script %}
+
+
+  <!-- JavaScript 필터링 코드 -->
+  <script>
+    // 네비게이션 필터링 메뉴 접고 펼치기
+    const filterToggleBtn = document.getElementById('filter-toggle-btn');
+    const filterList = document.getElementById('filter-list');
+
+    filterToggleBtn.addEventListener('click', () => {
+      filterList.classList.toggle('open'); // filter-list에 'open' 클래스를 추가/제거
+    });
+
+
+    // 체크박스 상태가 변경될 때마다 필터링 실행
+    document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function () {
+        filterEvents();
+      });
+    });
+
+    // 필터링 함수
+    function filterEvents() {
+      // 선택된 카테고리들
+      const selectedCategories = Array.from(document.querySelectorAll('.category-checkbox:checked')).map(checkbox => checkbox.value);
+      console.log('선택된 카테고리:', selectedCategories);  // 선택된 카테고리 확인
+
+      // 이벤트들을 모두 가져옴
+      const events = document.querySelectorAll('.event');
+
+      // 이벤트들을 필터링
+      events.forEach(event => {
+        const eventCategory = event.getAttribute('data-category');
+        console.log(`이벤트 카테고리: ${eventCategory}, 선택된 카테고리들: ${selectedCategories}`);
+
+        // 선택된 카테고리 중 하나라도 해당하면 보이고, 아니면 숨김
+        if (selectedCategories.length === 0 || selectedCategories.includes(eventCategory)) {
+          event.style.display = 'block';  // 보이기
+        } else {
+          event.style.display = 'none';   // 숨기기
+        }
+      });
+    }
+  </script>
+
+
+
+  {% endblock %}

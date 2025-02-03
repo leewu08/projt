@@ -1,22 +1,163 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ event.title }}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
+{% extends 'base.html' %}
+
+{% block stylesheet %}
+
+<STyle>
+    .lead {
+        font-size: 1.25rem; /* 폰트 크기 */
+        color: #503acf; /* 보라색 텍스트 */
+        background-color: #eae6fb86; /* 연보라색 배경 */
+        padding: 20px;
+        border-radius: 8px; /* 둥근 모서리 */
+        line-height: 1.6; /* 줄 간격 */
+        text-align: center; /* 텍스트 중앙 정렬 */
+        margin-bottom: 20px;
+        font-weight: lighter; /* 폰트 두께를 가볍게 설정 */
+        font-family: 'Roboto', sans-serif; /* 로보토 폰트로 가볍고 세련된 느낌 추가 */
+
+    }</STyle>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+{% endblock %}
+
 <body>
-    <div class="container">
-        <h1 class="mt-4">제목:{{event.title }}</h1>
-        <h7>조회수:{{ event.views }}</h3>
-        <p>본문내용:{{ event.content }}</p>
+    {% block main %}
+    <div class="container mt-4">
+
+        <!-- 첨부파일 (이미지나 다른 파일이 있을 경우) -->
         {% if event.filename %}
-        <img src="{{ url_for('static', filename='uploads/' + event.filename) }}" width="500"/><br><br>
-        <a href="/static/uploads/{{ event.filename }}" class="btn btn-info">파일 다운로드</a>
+        <div class="row">
+            <div class="col-md-12" style="width: 100vw; overflow: hidden;">
+                <!-- 파일이 이미지인 경우 -->
+                {% if event.filename.endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')) %}
+                <img src="{{ url_for('static', filename='uploads/' + event.filename) }}" style="width: 100%; height: auto;  max-height:350px; object-fit: contain;" > 
+                {% else %}
+                <!-- 이미지가 아닌 파일일 경우 -->
+                <a href="{{ url_for('static', filename='uploads/' + event.filename) }}" target="_blank">첨부 파일 다운로드</a>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <!-- 파일명이 없을 경우 기본 이미지 -->
+        <img src="{{ url_for('static', filename='uploads/thanos-gangnam-style.gif') }}" class="event-image"
+            alt="기본 이미지" />
         {% endif %}
-        <a href="/event/edit/{{ event.id }}" class="btn btn-warning">수정</a>
-        <a href="/event/delete/{{ event.id }}" class="btn btn-danger">삭제</a>
-        <a href="/" class="btn btn-secondary">목록으로</a>
+
+        <hr>
+
+        <p class="lead" style="font-size: 14px;">{{ event.description }}</p>
+        
+
+        <hr>
+
+        <!-- 시작/종료 날짜 -->
+        <div class="row">
+            {% if event.start_date.date() == event.end_date.date() %}
+            <!-- 시작날짜와 종료날짜가 같으면 날짜 한 번만 출력 -->
+            <div class="col-md-12">
+                <strong style="font-size: 14px; color: gray; font-weight: normal;">일정:</strong>
+                <span style="font-size: 14px; color: black;">
+                    {{ event.start_date.strftime('%Y-%m-%d (%A)') }}
+                </span>
+                <span style="font-size: 14px; color: black;">{{ event.start_date.strftime('%H:%M') }}</span> ~
+                <span style="font-size: 14px; color: black;">{{ event.end_date.strftime('%H:%M') }}</span>
+            </div>
+            {% else %}
+            <!-- 시작날짜와 종료날짜가 다르면 각각 출력 -->
+            <div class="col-md-6">
+                <strong style="font-size: 14px; color: gray; font-weight: normal;">일정:</strong>
+                <span style="font-size: 14px; color: black;">
+                    {{ event.start_date.strftime('%Y-%m-%d (%A) %H:%M') }}
+                </span> ~
+                <span style="font-size: 14px; color: black;">
+                    {{ event.end_date.strftime('%Y-%m-%d (%A) %H:%M') }}
+                </span>
+            </div>
+            <div class="col-md-6">
+
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 신청 기한 -->
+        <div class="row">
+            {% if event.application_start_date.date() == event.application_end_date.date() %}
+            <!-- 신청 시작날짜와 종료날짜가 같으면 날짜 한 번만 출력 -->
+            <div class="col-md-8">
+                <strong style="font-size: 14px; color: gray; font-weight: normal;">신청 기한 :</strong>
+                <span style="font-size: 14px; color: black;">
+                    {{ event.application_start_date.strftime('%Y-%m-%d (%A)') }}
+                </span>
+                <span style="font-size: 14px; color: black;">
+                    {{ event.application_start_date.strftime('%H:%M') }}
+                </span>부터
+                <span style="font-size: 14px; color: black;">
+                    {{ event.application_end_date.strftime('%H:%M') }}
+                </span>까지
+            </div>
+            {% else %}
+            <!-- 신청 시작날짜와 종료날짜가 다르면 각각 출력 -->
+            <div class="col-md-8">
+                <strong style="font-size: 14px; color: gray; font-weight: normal;">신청 기간:</strong>
+                <span style="font-size: 14px; color: black;">
+                    {{ event.application_start_date.strftime('%Y-%m-%d (%A) %H:%M') }}
+                </span> ~
+                <span style="font-size: 14px; color: black;">
+                    {{ event.application_end_date.strftime('%Y-%m-%d (%A) %H:%M') }}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 참가비 -->
+        <div class="row">
+            <div class="col-md-12">
+                <strong style="font-size: 14px; color: gray; font-weight: normal;">비용 :</strong>
+                {% if event.entryfee == 0 %}
+                <span style="font-size: 14px; color: black;">무료</span>
+                {% else %}
+                <span style="font-size: 14px; color: black;">{{ event.entryfee }} 원</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 장소 -->
+        <div class="row">
+            <div class="col-md-6">
+                <strong style="font-size: 14px; color: gray; font-weight: normal;">장소:</strong>
+                <span style="font-size: 14px; color: black;">{{ event.location }}</span>
+            </div>
+        </div>
+
+        <hr>
+        <img src="{{ url_for('static', filename='uploads/' + eventmanager.filename) }}" style="width: 20%; height: auto;  max-height:250px; object-fit: contain;" > 
+        <div class="event-manager-info">
+            <div><strong style="font-size: 14px; color: gray; font-weight: normal;">담당자 ID:</strong> <span class style="font-size: 14px; color: black;" ="userid">{{ eventmanager.userid }}</span></div>
+            <div><strong style="font-size: 14px; color: gray; font-weight: normal;">전화번호:</strong> <span class style="font-size: 14px; color: black;"="phonenumber">{{ eventmanager.phonenumber }}</span></div>
+            <div><strong style="font-size: 14px; color: gray; font-weight: normal;">이메일:</strong> <span class style="font-size: 14px; color: black;"="address">{{ eventmanager.address }}</span></div>
+        </div>
+        
+        <hr>
+
+        <!-- 장소 및 카테고리 -->
+
+        <div>
+            <div class="col-md-6">
+                <strong>카테고리:</strong> {{ event.category }}
+            </div>
+        </div>
+
+
+
+        <!-- 수정 및 삭제 버튼 -->
+        <div class="row">
+            <div class="col-md-12">
+                <a href="{{ url_for('edit_event', id=event.id) }}" class="btn btn-warning">이벤트 수정</a>
+                <a href="{{ url_for('deleting_event', id=event.id) }}" class="btn btn-danger">이벤트 삭제</a>
+            </div>
+        </div>
+
     </div>
+    {% endblock %}
 </body>
+
 </html>

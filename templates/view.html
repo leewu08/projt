@@ -24,9 +24,23 @@
     <ul>
         {% for comment in comments %}
             <li>
-                <strong>작성자{{ comment['userid'] }}</strong>: {{ comment['content'] }}
+                <strong>작성자{{ comment['userid'] }}</strong>: {{ comment['content'] }}  
+                <a href="{{ url_for('deleting_comment', post_id=post.id, comment_id=comment['id']) }}" onclick="return confirm('정말로 이 댓글을 삭제하시겠습니까?');">x</a>
+                {% if comment.userid == session['userid'] %}
+                <button class="edit-btn" data-comment-id="{{ comment.id }}">수정</button>
+                
+                <!-- 댓글 작성자가 로그인한 사용자와 같을 때만 수정 버튼 표시 -->
+                {% if comment.userid == session['userid'] %}
+                <form method="POST">
+                    <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                    <textarea name="content" rows="4" cols="50">{{ comment.content }}</textarea>
+                    <button type="submit">수정 완료</button>
+                </form>
+                {% endif %}
+                {% endif %}
                 <br>
                 <small>{{ comment['created_at'] }}</small>
+                
             </li>
         {% else %}
             <p>댓글이 없습니다.</p>

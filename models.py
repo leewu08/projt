@@ -12,7 +12,7 @@ class DBManager:
     def connect(self):
         try:
             self.connection = mysql.connector.connect(
-                host="10.0.66.8",
+                host="10.0.66.13",
                 user="sejong",
                 password="1234",
                 database="board_db3"
@@ -64,6 +64,7 @@ class DBManager:
             print(f'게시글 조회 실패 : {error}')
             return []
         finally:
+
             self.disconnect()        
                      
     def get_total_post_count(self):
@@ -232,14 +233,11 @@ class DBManager:
             self.disconnect()
             ## 위 함수가 충족되면
             
-    def regist_account(self,username,userid,password): 
+    def regist_account(self,username,userid,password,phonenumber,address,filename): 
         try:
             self.connect()       
-            # if self.check_user_exists(userid):
-            #     return False
-
-            sql='insert into data(username,userid,password) values (%s,%s,%s)'
-            values=(username,userid,password)
+            sql='insert into data(username,userid,password,phonenumber,address,filename) values (%s,%s,%s,%s,%s,%s)'
+            values=(username,userid,password,phonenumber,address,filename)
             self.cursor.execute(sql,values)
             self.connection.commit()
             return True
@@ -249,6 +247,45 @@ class DBManager:
         finally:
             self.disconnect()
             ## 아래함수 실행
+
+    def update_id(self,userid,username,password,phonenumber,address,filename):
+        try:
+            self.connect()
+            if password:
+                sql = """UPDATE data 
+                        SET username = %s, password = %s,phonenumber =%s,address=%s,filename=%s
+                        WHERE userid = %s
+                        """
+                values = (username,password,phonenumber,address,filename,userid)
+            else:
+                sql = """UPDATE data 
+                        SET username = %s,phonenumber =%s,address=%s,filename=%s
+                        WHERE userid = %s
+                        """
+                        
+                values = (username,phonenumber,address,filename,userid)
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"게시글 수정 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+            
+    def get_data_by_userid(self,userid):
+        try:
+            self.connect()
+            sql = "SELECT * FROM data WHERE userid = %s"
+            value = (userid,) # 튜플 1개 일때
+            self.cursor.execute(sql, value)
+            return self.cursor.fetchone() # 하나의 결과만 필요할때 사용하는 메서드(첫번째행만 가져오게됨, 결과가 없으면 none 반환)
+        except mysql.connector.Error as error:
+            print(f"내용 조회 실패: {error}")
+            return None
+        finally:
+            self.disconnect()
             
 ####--------------------------------------------------
 
@@ -307,14 +344,14 @@ class DBManager:
 
 
     
-    def insert_event(self, title, description, start_date, end_date, location, category, filename, userid):
+    def insert_event(self, title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,filename,  userid):
         try:
             self.connect()
             sql = """
-            INSERT INTO events (title, description, start_date, end_date, location, category, filename, userid, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO events (title, description, start_date, end_date,application_start_date, application_end_date, location, category, entryfee,  filename, userid, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
             """
-            values = (title, description, start_date, end_date, location, category, filename, userid, datetime.now())            
+            values = (title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,  filename,  userid, datetime.now())            
             self.cursor.execute(sql, values)   
             self.connection.commit()
             return True
@@ -365,25 +402,45 @@ class DBManager:
             return None
         finally:
             self.disconnect()
-    
-    def update_event(self,title, description, start_date, end_date, location, category, filename,id):
+    def get_userid_by_event_id(self, id):
         try:
             self.connect()
+            # userid만 가져오는 쿼리
+            sql = "SELECT userid FROM events WHERE id = %s"
+            value = (id,)
+            self.cursor.execute(sql, value)
+            result = self.cursor.fetchone()  # 하나의 결과만 가져옴
+            if result:
+                return result['userid']  # 'userid' 칼럼 값 반환
+            return None
+        except mysql.connector.Error as error:
+            print(f"userid 조회 실패: {error}")
+            return None
+        finally:
+            self.disconnect()
+
+    
+    def update_event(self, title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee, id):
+        try:
+            self.connect()
+            if not entryfee:  # entryfee가 None, 빈 문자열, 0 등 모두 포함됨
+                entryfee = 0
+            
             if filename:
                 sql = """UPDATE events 
-                        SET title = %s, description = %s, start_date = %s ,end_date=%s,
-                        location =%s, category=%s,filename=%s
-                        WHERE id = %s
-                        """
+                    SET title = %s, description = %s, start_date = %s, end_date = %s,
+                    application_start_date = %s, application_end_date = %s, location = %s, 
+                    category = %s, filename = %s, entryfee = %s
+                    WHERE id = %s"""
                         
-                values = (title, description, start_date, end_date, location, category, filename,id)
+                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee, id)
             else:
                 sql = """UPDATE events 
-                        SET title = %s, description = %s, start_date = %s ,end_date=%s,
-                        location =%s, category=%s
-                        WHERE id = %s
-                        """
-                values = (title, description, start_date, end_date, location, category,id)
+                    SET title = %s, description = %s, start_date = %s, end_date = %s,
+                    application_start_date = %s, application_end_date = %s, location = %s, 
+                    category = %s, entryfee = %s
+                    WHERE id = %s"""
+                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, entryfee, id)
             self.cursor.execute(sql, values)
             self.connection.commit()
             return True
@@ -408,6 +465,26 @@ class DBManager:
             return False
         finally:
             self.disconnect()
+            
+    
+    def get_events_by_date(self, date_str):
+        try:
+            self.connect()
+            query = """
+                SELECT id, title, description, start_date, filename
+                FROM events
+                WHERE DATE(start_date) = %s
+                """
+            self.cursor.execute(query, (date_str,))
+            events = self.cursor.fetchall()  # 결과 가져오기
+            return events  # 이벤트 리스트 반환
+        except mysql.connector.Error as error:
+            print(f"이벤트 조회 실패: {error}")
+            return []
+        finally:
+            self.disconnect()
+
+
 
 
 
@@ -454,4 +531,50 @@ class DBManager:
             print(f'게시글 조회 실패 : {error}')
             return []
         finally:
-            self.disconnect()        
+            self.disconnect()       
+            
+            
+    def delete_comment(self,comment_id): 
+        try:
+            self.connect()
+            sql = "DELETE FROM comments WHERE id  = %s"
+            value = (comment_id,)
+            self.cursor.execute(sql, value)
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"게시판 삭제 실패: {error}")
+            return False
+        finally:
+            self.disconnect()    
+                
+    def update_comment(self,content,id):
+        try:
+            self.connect()
+            sql = """UPDATE comments 
+                    SET content=%s WHERE id = %s
+                    """
+            values = (content,id)
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"게시글 수정 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+    def check_id_by_comment(self,id):
+        try:
+            self.connect()
+            sql = 'SELECT userid FROM comments WHERE userid =%s' 
+            self.cursor.execute(sql,(id,))
+            commenter=self.cursor.fetchone() # 지정된 페이지에 해당하는 게시글들 반환
+            return commenter
+        except mysql.connector.Error as error:
+            print(f'게시글 조회 실패 : {error}')
+            return []
+        finally:
+            self.disconnect()              
+        
