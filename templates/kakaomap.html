@@ -1,28 +1,184 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>카카오 지도</title>
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=22e1d4f95d849a1ec5efd3eb058136ae"></script>
-  <style>
-    #map {
-      width: 100%;
-      height: 500px;
+{% extends 'base.html' %}
+{% block stylesheet %}
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=22e1d4f95d849a1ec5efd3eb058136ae&libraries=services"></script>
+    <style>
+            #map {
+        width: 100%;
+        height: 100vh;  /* 화면 전체 높이에 맞게 설정 */
     }
-  </style>
-</head>
-<body>
-  <h1>카카오 지도 예제</h1>
-  <div id="map"></div>
-  <script>
-    var container = document.getElementById('map');
-    var options = {
-      center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울시청 좌표
-      level: 3 // 확대 레벨
-    };
+        
+        .map-container {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        #map {
+            width: 75%;
+            height: 900px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        #sidebar {
+            width: 23%;
+            height: 900px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .sidebar-item {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            cursor: pointer;
+        }
+
+        .sidebar-item:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* 날짜 필터 스타일 */
+        .date-filter {
+            margin: 20px;
+        }
+    </style>
+    {% endblock %}
+    {% block main %}
+
+    <!-- 지도와 사이드바 배치 -->
+    <div class="map-container">
+        <div id="map"></div> <!-- 지도 -->
+        <div id="sidebar"></div> <!-- 사이드바 -->
+    </div>
+    {% endblock %}
+
+    {% block script %}<script>
+        var map, infowindow;
+
+        
+        
+        // 서버에서 받은 이벤트 데이터 (Flask 템플릿에서 JSON으로 렌더링된 데이터)
+        var eventsData = {{ events | tojson }};  // Jinja2를 통해 서버에서 넘긴 데이터를 JavaScript 변수로 전달
     
-    var map = new kakao.maps.Map(container, options);
-  </script>
+        // 카카오맵 로드
+        kakao.maps.load(function() {
+            var mapContainer = document.getElementById('map');  // 지도를 표시할 div
+            var mapOption = {
+                center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청 위치 (서울 중심)
+                level: 12 // 레벨을 낮춰서 서울 및 그 주변 지역을 한눈에 볼 수 있도록 설정
+            };
+            map = new kakao.maps.Map(mapContainer, mapOption);  // 지도 객체 생성
+            infowindow = new kakao.maps.InfoWindow({zIndex: 1});  // 인포윈도우 객체 생성
+    
+            // 사이드바에 이벤트 데이터 추가
+            function renderSidebar(events) {
+                var sidebar = document.getElementById('sidebar');
+                sidebar.innerHTML = '';  // 기존 내용 초기화
+    
+                events.forEach(function(event) {
+                    var itemDiv = document.createElement('div');
+                    itemDiv.classList.add('sidebar-item');
+                    itemDiv.innerHTML = `
+                        <strong>${event.title}</strong><br>
+                        위치: ${event.location}<br>
+                        시작 날짜: ${event.start_date}
+                    `;
+                    
+                    // 사이드바 아이템 클릭 시, 해당 이벤트로 지도 이동 및 view_event 페이지로 이동
+                    itemDiv.addEventListener('click', function() {
+                        var position = new kakao.maps.LatLng(event.latitude, event.longitude);
+                        map.panTo(position);  // 지도 이동
+    
+                        infowindow.setContent(`
+                            <div style="padding:5px;">
+                                ${event.title}<br>
+                                위치: ${event.location}<br>
+                                시작 날짜: ${event.start_date}
+                            </div>
+                        `);  // 인포윈도우 내용 설정
+                        infowindow.open(map);  // 인포윈도우 열기
+    
+                        // 이벤트 클릭 시 URL 변경 (상세 페이지로 이동)
+                        window.location.href = "/event/" + event.id;  // event.id를 URL에 추가하여 이동
+                    });
+                    sidebar.appendChild(itemDiv);  // 사이드바에 아이템 추가
+                });
+            }
+    
+            // 지도에 마커 추가
+            function renderMarkers(events) {
+                events.forEach(function(event) {
+                    var markerPosition = new kakao.maps.LatLng(event.latitude, event.longitude);
+                    var marker = new kakao.maps.Marker({
+                        map: map,
+                        position: markerPosition
+                    });
+    
+                    // 마커에 마우스 오버 이벤트 추가
+                    kakao.maps.event.addListener(marker, 'mouseover', function() {
+                        // 마우스 오버 시 정보 표시
+                        infowindow.setContent(`
+                            <div style="padding:5px;">
+                                <strong>${event.title}</strong><br>
+                                위치: ${event.location}<br>
+                                시작 날짜: ${event.start_date}
+                            </div>
+                        `);
+                        infowindow.open(map, marker);  // 마우스 오버 시 인포윈도우 열기
+                    });
+    
+                    // 마커에 마우스 아웃 이벤트 추가
+                    kakao.maps.event.addListener(marker, 'mouseout', function() {
+                        infowindow.close();  // 마우스 아웃 시 인포윈도우 닫기
+                    });
+    
+                    // 마커 클릭 시 해당 이벤트로 상세 페이지 이동
+                    kakao.maps.event.addListener(marker, 'click', function() {
+                        window.location.href = "/event/" + event.id;  // 이벤트 클릭 시 상세 페이지로 이동
+                    });
+                });
+            }
+    
+            // 날짜 필터링 함수
+            function filterEvents() {
+                var selectedDate = document.getElementById('start-date').value;
+                
+                // 선택된 날짜가 비어 있으면, 전체 데이터를 렌더링
+                if (!selectedDate) {
+                    renderSidebar(eventsData);
+                    renderMarkers(eventsData);
+                    return;
+                }
+    
+                // 필터링된 이벤트 리스트
+                var filteredEvents = eventsData.filter(function(event) {
+                    // 시작 날짜가 선택된 날짜와 동일한지 확인
+                    return event.start_date.substring(0, 10) === selectedDate;
+                });
+    
+                // 필터링된 이벤트가 있으면, 지도와 사이드바를 업데이트
+                if (filteredEvents.length > 0) {
+                    renderSidebar(filteredEvents);
+                    renderMarkers(filteredEvents);
+                } else {
+                    alert("해당 날짜의 이벤트가 없습니다.");
+                    renderSidebar([]);  // 이벤트가 없으면 빈 사이드바
+                    renderMarkers([]);   // 이벤트가 없으면 빈 마커
+                }
+            }
+    
+    
+            // 페이지 로드 후 기본 이벤트 렌더링
+            renderSidebar(eventsData);
+            renderMarkers(eventsData);
+        });
+    </script>
+    
+    
+    
+    {% endblock %}
 </body>
 </html>

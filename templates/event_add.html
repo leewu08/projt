@@ -1,8 +1,61 @@
 {% extends 'base.html' %}
 
-{% block stylesheet %}
+    {% block stylesheet %}
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-{% endblock %}</head>
+    <!-- 카카오 지도 API -->
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=22e1d4f95d849a1ec5efd3eb058136ae&libraries=services"></script>
+    <style>
+        /* 부모 컨테이너 크기 조정 */
+        .map-container {
+            width: 100%;
+            max-width: 1300px;  /* 최대 너비 설정 */
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        /* 지도 출력 크기 */
+        #map {
+            width: 70%; 
+            height: 600px; 
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 사이드바 스타일 */
+        #sidebar {
+            width: 28%; 
+            height: 600px; 
+            overflow-y: auto; 
+            background-color: #f8f9fa; 
+            border-left: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-left: 2%;
+        }
+
+        .sidebar-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .sidebar-item:hover {
+            background-color: #e9ecef; /* 마우스를 올렸을 때 활성화 효과 */
+            transform: scale(1.02);  /* 약간의 크기 확대 효과 */
+        }
+
+        .sidebar-item:active {
+            background-color: #d6d8db; /* 클릭 시 활성화 효과 */
+        }
+
+    </style>
+{% endblock %}
+
+
 {% block main %}
     <div class="container">
         <h1 class="mt-4">게시글 추가</h1>
@@ -38,11 +91,6 @@
             </div>
 
             <div class="form-group">
-                <label for="location">장소</label>
-                <input type="text" class="form-control" id="location" name="location" required>
-            </div>
-        
-            <div class="form-group">
                 <label for="category">카테고리</label>
                 <input type="text" class="form-control" id="category" name="category" required>
             </div>
@@ -52,14 +100,159 @@
                 <input type="file" class="form-control" id="file" name="file">
             </div>
             
-        
             <div class="form-group">
                 <label for="entryfee">참가비</label>
                 <input type="number" class="form-control" id="entryfee" name="entryfee" required>
             </div>
-        
-        
+
+            <div class="form-group">
+                <label for="location">장소</label>
+                <input type="text" class="form-control" id="location" name="location" required>
+                <button type="button" class="btn btn-info mt-2" onclick="searchPlace()">장소 검색</button>
+            </div>
+            <div class="form-group">
+                <label for="latitude"></label>
+                <input type="hidden" id="latitude" name="latitude" 
+                       value="{{ latitude if latitude else 37.5665 }}">
+            </div>
+            <div class="form-group">
+                <label for="longitude"></label>
+                <input type="hidden" id="longitude" name="longitude" 
+                       value="{{ longitude if longitude else 37.5665 }}">
+            </div>
+            
+            <div class="map-container">
+                <div id="map"></div>
+                <div id="sidebar"></div>
+            </div>
+            
             <button type="submit" class="btn btn-primary">이벤트 추가</button>
         </form>
     </div>
+{% endblock %}
+
+{% block script %}
+<script>
+var map, ps;
+var markers = [];  // 마커 배열
+var infowindow = new kakao.maps.InfoWindow({zIndex: 1});
+var selectedPlace = null;  // 선택된 장소 정보 저장
+
+// 카카오맵 로드
+kakao.maps.load(function() {
+    var mapContainer = document.getElementById('map');
+    var mapOption = {
+        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청 기본 위치
+        level: 3
+    };
+    map = new kakao.maps.Map(mapContainer, mapOption);
+    ps = new kakao.maps.services.Places();
+});
+
+// 장소 검색 함수
+function searchPlace() {
+    var keyword = document.getElementById('location').value;
+    if (!keyword) {
+        alert('검색어를 입력하세요!');
+        return;
+    }
+    ps.keywordSearch(keyword, placesSearchCB);
+}
+
+// 장소 검색 결과 콜백 함수
+function placesSearchCB(data, status, pagination) {
+    if (status === kakao.maps.services.Status.OK) {
+        removeMarkers(); // 기존 마커 제거
+
+        // 검색 결과로 마커 추가
+        data.forEach(function(place, index) {
+            var position = new kakao.maps.LatLng(place.y, place.x);
+            var marker = new kakao.maps.Marker({
+                map: map,
+                position: position
+            });
+
+            // 마커 클릭 시 인포윈도우 열기
+            kakao.maps.event.addListener(marker, 'click', makeOverListener(map, marker, place));
+            markers.push(marker);  // 마커 배열에 추가
+        });
+
+        // 사이드바에 검색된 장소 리스트 추가
+        updateSidebar(data);
+    } else {
+        alert("검색 결과가 없습니다.");
+    }
+}
+
+// 기존 마커들 삭제 함수
+function removeMarkers() {
+    for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null);  // 마커 삭제
+    }
+    markers = [];  // 마커 배열 초기화
+}
+
+// 마커 클릭 시 인포윈도우를 열어주는 함수
+function makeOverListener(map, marker, place) {
+    return function() {
+        var content = '<div style="padding:5px;z-index:1;">' + place.place_name + '<br>' + place.address_name + '</div>';
+        infowindow.setContent(content);
+        infowindow.open(map, marker);
+
+        // 선택된 장소 정보 저장
+        selectedPlace = place;
+
+        // 선택된 장소의 위도와 경도를 hidden 필드에 설정
+        document.getElementById('latitude').value = place.y;
+        document.getElementById('longitude').value = place.x;
+
+        // 선택된 장소 정보를 p 태그에 표시
+        document.getElementById('address').innerHTML = place.place_name + "<br>" + place.address_name;
+    };
+}
+
+// 사이드바 업데이트 함수
+function updateSidebar(data) {
+    var sidebar = document.getElementById('sidebar');
+    sidebar.innerHTML = ''; // 기존 내용 지우기
+
+    // 검색된 장소를 사이드바에 표시
+    data.forEach(function(place, index) {
+        var placeDiv = document.createElement('div');
+        placeDiv.className = 'sidebar-item';
+        placeDiv.innerHTML = place.place_name + "<br>" + place.address_name;
+
+        // 사이드바 아이템 클릭 시, 해당 장소의 인포윈도우를 열도록 설정
+        placeDiv.addEventListener('click', function() {
+            var position = new kakao.maps.LatLng(place.y, place.x);
+
+            // 지도 이동: 선택한 장소로 이동
+            map.panTo(position);
+
+            // 기존 마커를 삭제하고 새로운 마커 생성
+            removeMarkers();  // 이전 마커 삭제
+            var marker = new kakao.maps.Marker({
+                map: map,
+                position: position
+            });
+
+            // 마커 클릭 시 인포윈도우를 열기 위한 리스너 추가
+            kakao.maps.event.addListener(marker, 'click', function() {
+                var content = '<div style="padding:5px;z-index:1;">' + place.place_name + '<br>' + place.address_name + '</div>';
+                infowindow.setContent(content);
+                infowindow.open(map, marker);
+            });
+
+            // 마커 배열에 추가
+            markers.push(marker);
+
+            // 선택된 장소의 위도와 경도를 hidden 필드에 설정
+            document.getElementById('latitude').value = place.y;
+            document.getElementById('longitude').value = place.x;
+        });
+
+        sidebar.appendChild(placeDiv);
+    });
+}
+</script>
 {% endblock %}

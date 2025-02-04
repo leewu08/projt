@@ -301,9 +301,12 @@ def add_event():
         end_date = request.form['end_date']
         application_start_date = request.form['application_start_date']
         application_end_date = request.form['application_end_date']
-        location = request.form['location']
         category = request.form['category']
         entryfee = request.form['entryfee']  # 참가비 추가
+        location = request.form['location']
+                # 위도와 경도 값 받기
+        latitude = request.form['latitude']
+        longitude = request.form['longitude']
     
         # 첨부파일 한 개
         file = request.files['file']
@@ -313,7 +316,7 @@ def add_event():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
         
-        if manager.insert_event(title, description, start_date, end_date,application_start_date, application_end_date, location, category,entryfee, filename, userid):
+        if manager.insert_event(title, description, start_date, end_date,application_start_date, application_end_date, location, category,entryfee, filename,latitude,longitude, userid):
             return redirect("/")
         return "게시글 추가 실패", 400        
     return render_template('event_add.html' )
@@ -327,8 +330,12 @@ def view_event(id):
     manager.counting_event_view(id)
     user=manager.get_userid_by_event_id(id)
     eventmanager=manager.get_data_by_userid(user)
-    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager)
-## db 만들고 넣어야함
+    location= manager.get_event(id)
+    print(location)
+    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager,location=location)
+
+
+
 @app.route('/event/edit/<int:id>', methods=['GET', 'POST']) ## 게시글 수정
 def edit_event(id):
     
@@ -336,6 +343,7 @@ def edit_event(id):
         
         flash("로그인을 하세요.")
         return redirect(url_for('login'))  # 로그인 페이지 경로를 'login'으로 설정한다고 가정
+    location= manager.get_event(id)
     
     event = manager.get_event_by_id(id)
     if request.method == 'POST':
@@ -345,22 +353,25 @@ def edit_event(id):
         end_date = request.form['end_date']
         application_start_date = request.form['application_start_date']
         application_end_date = request.form['application_end_date']
-        location = request.form['location']
         category = request.form['category']
         entryfee = request.form['entryfee']  # 참가비 추가
         file = request.files['file']
         filename = file.filename if file else None
         entryfee = request.form['entryfee']
+        location = request.form['location']
+                # 위도와 경도 값 받기
+        latitude = request.form['latitude']
+        longitude = request.form['longitude']
 
 
         if filename:
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        if manager.update_event(title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee, id):
+        if manager.update_event(title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude, id):
             
-            return redirect("/")
+            return redirect(url_for('view_event', id=id))
         return "게시글 추가 실패", 400        
-    return render_template('event_edit.html',event=event)
+    return render_template('event_edit.html',event=event,location=location)
 
 @app.route('/event/delete/<int:id>')  #게시글 삭제
 def deleting_event(id):
@@ -419,9 +430,9 @@ def get_events_for_date():
 
 @app.route('/map')
 def map_view():
-    lat = 37.5665  # 예시 좌표
-    lng = 126.9780
-    return render_template('kakaomap.html', lat=lat, lng=lng)
+    events_data = manager.get_all_events_data()
+    return render_template('kakaomap.html', events=events_data)
+
 
 
 @app.route('/comment/add/<int:post_id>', methods=['GET', 'POST']) ## 게시글 추가

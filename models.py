@@ -344,14 +344,14 @@ class DBManager:
 
 
     
-    def insert_event(self, title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,filename,  userid):
+    def insert_event(self, title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,filename, latitude,longitude, userid):
         try:
             self.connect()
             sql = """
-            INSERT INTO events (title, description, start_date, end_date,application_start_date, application_end_date, location, category, entryfee,  filename, userid, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
+            INSERT INTO events (title, description, start_date, end_date,application_start_date, application_end_date, location, category, entryfee,  filename, latitude,longitude,userid, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s)
             """
-            values = (title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,  filename,  userid, datetime.now())            
+            values = (title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,  filename, latitude,longitude, userid, datetime.now())            
             self.cursor.execute(sql, values)   
             self.connection.commit()
             return True
@@ -402,6 +402,7 @@ class DBManager:
             return None
         finally:
             self.disconnect()
+            
     def get_userid_by_event_id(self, id):
         try:
             self.connect()
@@ -420,7 +421,7 @@ class DBManager:
             self.disconnect()
 
     
-    def update_event(self, title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee, id):
+    def update_event(self, title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude, id):
         try:
             self.connect()
             if not entryfee:  # entryfee가 None, 빈 문자열, 0 등 모두 포함됨
@@ -430,17 +431,17 @@ class DBManager:
                 sql = """UPDATE events 
                     SET title = %s, description = %s, start_date = %s, end_date = %s,
                     application_start_date = %s, application_end_date = %s, location = %s, 
-                    category = %s, filename = %s, entryfee = %s
+                    category = %s, filename = %s, entryfee = %s ,latitude=%s,longitude=%s
                     WHERE id = %s"""
                         
-                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee, id)
+                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude ,id)
             else:
                 sql = """UPDATE events 
                     SET title = %s, description = %s, start_date = %s, end_date = %s,
                     application_start_date = %s, application_end_date = %s, location = %s, 
-                    category = %s, entryfee = %s
+                    category = %s, entryfee = %s,latitude=%s,longitude=%s
                     WHERE id = %s"""
-                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, entryfee, id)
+                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, entryfee,latitude,longitude, id)
             self.cursor.execute(sql, values)
             self.connection.commit()
             return True
@@ -483,6 +484,39 @@ class DBManager:
             return []
         finally:
             self.disconnect()
+            
+    def get_event(self, event_id):## 경도,위도,로케이션 갖고오는 함수
+        try:
+            if not self.connection or not self.connection.is_connected():
+                self.connect()
+
+            # event_id 매개변수를 쿼리에 동적으로 사용
+            query = "SELECT latitude, longitude, location FROM events WHERE id = %s"
+            self.cursor.execute(query, (event_id,))  # event_id 값을 안전하게 전달
+            result = self.cursor.fetchone()  # 하나의 행만 가져옴
+            return result
+        except mysql.connector.Error as error:
+            print(f"쿼리 실행 실패: {error}")
+            return None
+        finally:
+            self.disconnect()  # 쿼리 후 반드시 연결 종료
+
+    def get_all_events_data(self):
+        try:
+            if not self.connection or not self.connection.is_connected():
+                self.connect()
+
+            query = "SELECT id,title,latitude, longitude, location,start_date FROM events"
+            self.cursor.execute(query)
+            result = self.cursor.fetchall()  # 여러 개의 이벤트 반환
+            return result  # [(latitude, longitude, location), ...]
+        except mysql.connector.Error as error:
+            print(f"쿼리 실행 실패: {error}")
+            return []
+        finally:
+            self.disconnect()
+            
+
 
 
 
