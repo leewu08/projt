@@ -2,20 +2,52 @@
 
 {% block stylesheet %}
 
-<STyle>
-    .lead {
-        font-size: 1.25rem; /* 폰트 크기 */
-        color: #503acf; /* 보라색 텍스트 */
-        background-color: #eae6fb86; /* 연보라색 배경 */
-        padding: 20px;
-        border-radius: 8px; /* 둥근 모서리 */
-        line-height: 1.6; /* 줄 간격 */
-        text-align: center; /* 텍스트 중앙 정렬 */
-        margin-bottom: 20px;
-        font-weight: lighter; /* 폰트 두께를 가볍게 설정 */
-        font-family: 'Roboto', sans-serif; /* 로보토 폰트로 가볍고 세련된 느낌 추가 */
+<STyle>/* 기본 참여자 ID 스타일 */
+    .participant-id {
+      cursor: pointer;
+      color: #007BFF;
+      text-decoration: underline;
+    }
+    
+    /* 드롭다운 메뉴 숨기기 */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+      z-index: 1;
+      margin-top: 5px;
+      padding: 10px;
+    }
+    
+    /* 체크박스가 체크되었을 때 드롭다운 보이기 */
+    .dropdown-toggle:checked + .participant-id + .dropdown-content {
+      display: block;
+    }
+    
+    /* 드롭다운 내 버튼 스타일 */
+    .dropdown-content form {
+      padding: 10px;
+      text-align: center;
+    }
+    
+    .dropdown-content button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .dropdown-content button:hover {
+      background-color: #45a049;
+    }
+    
 
-    }</STyle>
+    </STyle>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=22e1d4f95d849a1ec5efd3eb058136ae&libraries=services"></script>
 
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -143,8 +175,67 @@
             <div><strong style="font-size: 14px; color: gray; font-weight: normal;">전화번호:</strong> <span class style="font-size: 14px; color: black;"="phonenumber">{{ eventmanager.phonenumber }}</span></div>
             <div><strong style="font-size: 14px; color: gray; font-weight: normal;">이메일:</strong> <span class style="font-size: 14px; color: black;"="address">{{ eventmanager.address }}</span></div>
         </div>
-        
-        <hr>
+            
+        <!-- <hr>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 1px;">
+                <p>참여자: {{ event_pp[0]['participant_count'] }}명 
+                </p>{% for participant in event_p %}
+                    <div>
+                        <p><strong>{{ participant.participant_id }},</strong></p>
+                       
+                    </div>
+                {% endfor %}
+</div>
+
+<hr> -->
+<hr>
+<div style="display: flex; flex-wrap: wrap; gap: 1px;">
+    <p>참여자: {{ event_pp[0]['participant_count'] }}명 </p>
+    {% for participant in event_p %}
+        <div class="participant">
+            <!-- 동적으로 id를 생성 (participant.participant_id를 사용) -->
+            <input type="checkbox" id="dropdown-{{ participant.participant_id }}" class="dropdown-toggle" hidden>
+            <label for="dropdown-{{ participant.participant_id }}" class="participant-id">
+                <strong>{{ participant.participant_id }}</strong>
+            </label>
+
+            <div class="dropdown-content" id="dropdown-content-{{ participant.participant_id }}">
+                <p>ID: {{ participant.participant_id }}의 정보입니다.</p> 
+                <!-- <form action="#" method="POST">
+                    <button type="submit">승인</button>
+                </form>
+                <form action="#" method="POST">
+                    <button type="submit">거절</button>
+                </form>
+                <form action="#" method="POST">
+                    <button type="submit">삭제</button>
+                </form> -->
+                <form action="{{ url_for('approve_participant') }}" method="POST">
+                    <input type="hidden" name="participant_id" value="{{ participant.participant_id }}">
+                    <input type="hidden" name="event_id" value="{{ participant.event_id }}">
+                    <button type="submit">승인</button>
+                </form>
+
+    
+                <form action="{{ url_for('reject_participant') }}" method="POST">
+                    <input type="hidden" name="participant_id" value="{{ participant.participant_id }}">
+                    <input type="hidden" name="event_id" value="{{ participant.event_id }}">
+                    <button type="submit">거절</button>
+                </form>
+    
+                <form action="{{ url_for('delete_participant') }}" method="POST">
+                    <input type="hidden" name="participant_id" value="{{ participant.participant_id }}">
+                    <input type="hidden" name="event_id" value="{{ participant.event_id }}">
+                    <button type="submit">삭제</button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+<hr>
+
+
 
         <!-- 장소 및 카테고리 -->
 
@@ -153,6 +244,7 @@
                 <strong>카테고리:</strong> {{ event.category }}
             </div>
         </div>
+        <hr>
 
 
 
@@ -162,6 +254,7 @@
                 <a href="{{ url_for('edit_event', id=event.id) }}" class="btn btn-primary">이벤트 수정</a>
                 <a href="{{ url_for('event') }}" class="btn btn-secondary">이벤트 목록</a>
                 <a href="{{ url_for('deleting_event', id=event.id) }}" class="btn btn-danger">이벤트 삭제</a>
+                <a href="{{ url_for('join_event', event_id=event.id,user_id=session['userid']) }}" class="btn btn-primary">이벤트 참여</a>
             </div>
         </div>
 
@@ -170,6 +263,20 @@
 </body>
 {% block script %}
 <script>
+    // 모든 체크박스를 찾아서 클릭 시 인라인 스타일을 수정
+document.querySelectorAll('.dropdown-toggle').forEach(function(checkbox) {
+  checkbox.addEventListener('change', function() {
+    const dropdownContent = document.getElementById('dropdown-content-' + this.id.split('-')[1]);
+    if (this.checked) {
+      // 체크된 경우 드롭다운 보이게 설정
+      dropdownContent.style.display = 'block';
+    } else {
+      // 체크 해제된 경우 드롭다운 숨기기
+      dropdownContent.style.display = 'none';
+    }
+  });
+});
+
 kakao.maps.load(function() {
     var mapContainer = document.getElementById('map');
     var mapOption = {

@@ -217,6 +217,10 @@
         <i class="bi bi-calendar-week"></i> 달력 보기
       </a>
     </li>
+    <li><a href="{{ url_for('my_events', user_id=session['userid']) }}">
+      <button type="button">내 이벤트 보기</button>
+  </a>
+  </li>
 
     <!-- 카테고리 필터링 버튼 -->
     <li>

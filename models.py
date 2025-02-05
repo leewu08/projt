@@ -516,9 +516,118 @@ class DBManager:
         finally:
             self.disconnect()
             
+    def add_user_to_event(self,event_id,user_id):
+        try:
+            self.connect()
+            sql = """
+            INSERT INTO Event_Participants (participant_id,event_id,registration_time)
+            VALUES (%s, %s, %s)
+            """
+            values = (user_id,event_id, datetime.now())            
+            self.cursor.execute(sql, values)   
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"내용 추가 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+        
+    def event_participant_view(self,event_id):
+        try:
+            self.connect()
+            query = """SELECT * FROM event_participants WHERE event_id = %s;"""
+            self.cursor.execute(query, (event_id,))
+            events = self.cursor.fetchall()  # 결과 가져오기
+            return events  # 이벤트 리스트 반환
+        except mysql.connector.Error as error:
+            print(f"이벤트 조회 실패: {error}")
+            return []
+        finally:
+            self.disconnect()
+    def count_event_participants(self,event_id):
+        try:
+            self.connect()
+            query = """SELECT COUNT(participant_id) AS participant_count FROM event_participants WHERE event_id = %s;"""
+            self.cursor.execute(query, (event_id,))
+            events = self.cursor.fetchall()  # 결과 가져오기
+            return events  # 이벤트 리스트 반환
+        except mysql.connector.Error as error:
+            print(f"이벤트 조회 실패: {error}")
+            return []
+        finally:
+            self.disconnect()
 
-
-
+    def event_participant_status_approved(self,participant_id,event_id):
+        try:
+            self.connect()
+            
+            sql = """UPDATE event_participants 
+                    SET status =%s
+                    WHERE participant_id =%s and event_id = %s"""
+            values = ('approved',participant_id,event_id)
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"게시글 수정 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+            
+            
+    def event_participant_status_rejected(self,participant_id,event_id):
+        try:
+            self.connect()
+            
+            sql = """UPDATE event_participants 
+                    SET status =%s
+                    WHERE participant_id =%s and event_id = %s"""
+            values = ('rejected',participant_id,event_id)
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"게시글 수정 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+            
+    def event_participant_status_deleted(self,participant_id,event_id):
+        try:
+            self.connect()
+            
+            sql = """UPDATE event_participants 
+                    SET status =%s 
+                    WHERE participant_id =%s and event_id = %s"""
+            values = ('deleted',participant_id,event_id)
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            return True
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+            print(f"게시글 수정 실패: {error}")
+            return False
+        finally:
+            self.disconnect()
+            
+    def  get_my_events_view_by_userid(self,user_id):
+        try:
+            self.connect()
+            # userid만 가져오는 쿼리
+            sql = "SELECT event_id FROM event_participants WHERE participant_id = %s"
+            value = (user_id,)
+            self.cursor.execute(sql, value)
+            rr=self.cursor.fetchall()  
+            return rr
+        except mysql.connector.Error as error:
+            print(f"userid 조회 실패: {error}")
+            return []
+        finally:
+            self.disconnect()
 
 
 

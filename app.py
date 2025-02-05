@@ -327,12 +327,74 @@ def view_event(id):
     
     now = datetime.now()  # 현재 날짜와 시간
     event = manager.get_event_by_id(id) #내용 보기 (디테일 보는거)
-    manager.counting_event_view(id)
+    manager.counting_event_view(id)# 조회시 조회수증가
     user=manager.get_userid_by_event_id(id)
     eventmanager=manager.get_data_by_userid(user)
     location= manager.get_event(id)
-    print(location)
-    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager,location=location)
+    event_p=manager.event_participant_view(id)#이거는 이벤트참여자의 정보(select * from event_participants)
+    event_pp=manager.count_event_participants(id)#이거는 이벤트참여자 참여수( 카운트)
+    
+    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager,location=location,event_p=event_p,event_pp=event_pp)
+
+
+@app.route('/join/<int:event_id>/<string:user_id>')
+def join_event(event_id,user_id):
+    event=manager.get_event_by_id(event_id)
+    user=manager.get_data_by_userid(user_id)
+    
+    if not event:
+        return "Event not found", 404
+    if not user:
+        return "User not found", 404
+    
+    success=manager.add_user_to_event(int(event['id']),user['userid'])
+    
+    
+    if success:
+        flash("참여완")
+        return redirect(url_for('view_event',id=event_id))
+    else:
+        flash("작성실패(아마 이미 참여중)")
+        return redirect(url_for('view_event',id=event_id))
+    
+@app.route('/approve_participant', methods=['POST'])
+def approve_participant():
+    participant_id = request.form.get('participant_id')
+    event_id = int(request.form.get('event_id'))
+    
+    manager.event_participant_status_approved(participant_id,event_id)
+    flash("승인 처리됬습니다")
+    # 일단 sql status 를 승인이라고 쓰는거만. 나중에 html에 출력되는조건(if문에 participant칼럼에 칼럼값이 스테이터스인 웨어조건을걸어서 있을시 출력같은..)디테일하게 구현필요
+    
+    
+    
+    
+    return redirect(url_for('view_event', id=event_id))
+
+@app.route('/reject_participant', methods=['POST'])
+def reject_participant():
+    participant_id = request.form.get('participant_id')
+    event_id = int(request.form.get('event_id'))
+    
+    manager.event_participant_status_rejected(participant_id,event_id)
+    flash("거절 처리됬습니다")# 일단 sql status 를 거절이라고 쓰는거만.
+    
+    
+    
+    return redirect(url_for('view_event', id=event_id))
+
+@app.route('/delete_participant', methods=['POST'])
+def delete_participant():
+    
+    participant_id = request.form.get('participant_id')
+    event_id = int(request.form.get('event_id'))
+    
+    manager.event_participant_status_deleted(participant_id,event_id)
+    flash("삭제 처리됬습니다")# 일단 sql status 를 삭제이라고 쓰는거만.
+    
+    
+    return redirect(url_for('view_event', id=event_id))
+    
 
 
 
@@ -425,8 +487,32 @@ def get_events_for_date():
     # JSON 응답
     return jsonify({"events": events})
 
-
-
+@app.route('/my_events/<user_id>')
+def my_events(user_id):
+    # user_id로 해당하는 이벤트 목록을 가져오는 함수 호출
+    m_events = manager.get_my_events_view_by_userid(user_id)
+    
+    events = []
+    
+    # m_events가 event_id 리스트라면 각 event_id에 대해 get_event_by_id 호출
+    for event_info in m_events:
+        # event_info가 이벤트 ID를 담고 있다면
+        event = manager.get_event_by_id(event_info['event_id'])  # event_info['event_id'] 형태로 접근
+        print(f"Event Data: {event}")
+        
+        # 이벤트 정보가 딕셔너리인 경우 필요한 값만 추출
+        event_data = {
+            'title': event['title'],   # 예: 'title' 값 추출
+            'start_date': event['start_date'],  # 예: 'start_date' 값 추출
+            'id': event['id'],  # 예: 'start_date' 값 추출
+            'filename': event['filename'],  # 예: 'start_date' 값 추출
+        }
+        
+        # 추출한 이벤트 정보를 리스트에 추가
+        events.append(event_data)
+    
+    # 최종적으로 렌더링할 HTML에 events 리스트 전달
+    return render_template('my_events.html', events=events)
 
 @app.route('/map')
 def map_view():
