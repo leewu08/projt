@@ -344,14 +344,14 @@ class DBManager:
 
 
     
-    def insert_event(self, title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,filename, latitude,longitude, userid):
+    def insert_event(self, title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,filename, latitude,longitude, userid,contents):
         try:
             self.connect()
             sql = """
-            INSERT INTO events (title, description, start_date, end_date,application_start_date, application_end_date, location, category, entryfee,  filename, latitude,longitude,userid, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s)
+            INSERT INTO events (title, description, start_date, end_date,application_start_date, application_end_date, location, category, entryfee,  filename, latitude,longitude,userid, created_at,contents)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s)
             """
-            values = (title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,  filename, latitude,longitude, userid, datetime.now())            
+            values = (title, description, start_date, end_date,application_start_date, application_end_date,  location, category, entryfee,  filename, latitude,longitude, userid, datetime.now(),contents)            
             self.cursor.execute(sql, values)   
             self.connection.commit()
             return True
@@ -421,7 +421,7 @@ class DBManager:
             self.disconnect()
 
     
-    def update_event(self, title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude, id):
+    def update_event(self, title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude, id,contents):
         try:
             self.connect()
             if not entryfee:  # entryfee가 None, 빈 문자열, 0 등 모두 포함됨
@@ -431,17 +431,17 @@ class DBManager:
                 sql = """UPDATE events 
                     SET title = %s, description = %s, start_date = %s, end_date = %s,
                     application_start_date = %s, application_end_date = %s, location = %s, 
-                    category = %s, filename = %s, entryfee = %s ,latitude=%s,longitude=%s
+                    category = %s, filename = %s, entryfee = %s ,latitude=%s,longitude=%s,contents=%s
                     WHERE id = %s"""
                         
-                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude ,id)
+                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude ,contents,id)
             else:
                 sql = """UPDATE events 
                     SET title = %s, description = %s, start_date = %s, end_date = %s,
                     application_start_date = %s, application_end_date = %s, location = %s, 
-                    category = %s, entryfee = %s,latitude=%s,longitude=%s
+                    category = %s, entryfee = %s,latitude=%s,longitude=%s,contents=%s
                     WHERE id = %s"""
-                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, entryfee,latitude,longitude, id)
+                values = (title, description, start_date, end_date, application_start_date, application_end_date, location, category, entryfee,latitude,longitude,contents, id)
             self.cursor.execute(sql, values)
             self.connection.commit()
             return True

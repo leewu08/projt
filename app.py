@@ -14,7 +14,11 @@ app = Flask(__name__)
 
 app.secret_key = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 2GB //
+ 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
 
 manager = DBManager()
 @app.route('/')
@@ -292,9 +296,12 @@ def add_event():
     if 'userid' not in session:
         return redirect(url_for('login'))  # 로그인 페이지 경로를 'login'으로 설정한다고 가정
     
+    
     userid = session['userid']  # 로그인한 사용자 ID 가져오기
     
     if request.method == 'POST':
+                # 요청 본문 크기 확인
+        
         title = request.form['title']
         description = request.form['description']
         start_date = request.form['start_date']
@@ -307,6 +314,7 @@ def add_event():
                 # 위도와 경도 값 받기
         latitude = request.form['latitude']
         longitude = request.form['longitude']
+        contents = request.form.get('contents')  # 'contents'라는 name 속성으로 데이터를 받음
     
         # 첨부파일 한 개
         file = request.files['file']
@@ -316,10 +324,45 @@ def add_event():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
         
-        if manager.insert_event(title, description, start_date, end_date,application_start_date, application_end_date, location, category,entryfee, filename,latitude,longitude, userid):
+        if manager.insert_event(title, description, start_date, end_date,application_start_date, application_end_date, location, category,entryfee, filename,latitude,longitude, userid,contents):
             return redirect("/")
         return "게시글 추가 실패", 400        
     return render_template('event_add.html' )
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'message': 'No file part'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'}), 400
+
+    if file and allowed_file(file.filename):
+        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filename)
+        image_url = f'/static/uploads/{file.filename}'  # 이미지 URL
+        return jsonify({'success': True, 'image_url': image_url})
+
+    return jsonify({'success': False, 'message': 'Invalid file format'}), 400
+
+app.route('/submit', methods=['POST'])
+def submit_data():
+    # 요청 본문 크기 확인
+    post_data_size = len(request.data)  # 바이트 단위
+
+    # 폼 데이터 크기 확인
+    form_data_size = sum(len(value) for value in request.form.values())
+
+    return f'Total POST data size: {post_data_size} bytes, Form data size: {form_data_size} bytes', 200
+@app.route('/submit_content', methods=['POST'])
+def submit_content():
+    content = request.form['editor1']  # 퀼 에디터의 HTML 내용
+    # 여기서 'content'를 저장하거나 다른 작업을 처리합니다.
+    return render_template('view_content.html', content=content)
 
 # 내용보기# 내용보기
 @app.route('/event/<int:id>')   # 내용 보기 ( 하나만 보는거 )
@@ -334,7 +377,14 @@ def view_event(id):
     event_p=manager.event_participant_view(id)#이거는 이벤트참여자의 정보(select * from event_participants)
     event_pp=manager.count_event_participants(id)#이거는 이벤트참여자 참여수( 카운트)
     
-    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager,location=location,event_p=event_p,event_pp=event_pp)
+    content = event.get('content')  # 딕셔너리에서 'content'를 가져오기 #야 이거 콘텐츠에 들어가잇는거 b'이 딴식으로 들어가서 한글로되어있는거 디코딩이 안됨 해결해야해'
+
+    # 'content' 내의 이미지 경로를 정적 경로로 수정
+    if content:
+        from flask import url_for
+        content = content.replace('src="uploads/', 'src="' + url_for('static', filename='uploads/'))
+
+    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager,location=location,event_p=event_p,event_pp=event_pp,content=content)
 
 
 @app.route('/join/<int:event_id>/<string:user_id>')
@@ -424,12 +474,13 @@ def edit_event(id):
                 # 위도와 경도 값 받기
         latitude = request.form['latitude']
         longitude = request.form['longitude']
+        contents=request.form['contents']
 
 
         if filename:
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        if manager.update_event(title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude, id):
+        if manager.update_event(title, description, start_date, end_date, application_start_date, application_end_date, location, category, filename, entryfee,latitude,longitude, id,contents):
             
             return redirect(url_for('view_event', id=id))
         return "게시글 추가 실패", 400        
