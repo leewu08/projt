@@ -87,11 +87,15 @@ class DBManager:
     def insert_post(self,title,content,filename,userid):
         try:
             self.connect()
-            sql = "INSERT INTO posts (title,content,filename,created_at,userid) values (%s,%s,%s,%s,%s)"
-            values = (title,content,filename,datetime.now(),userid)            
-            self.cursor.execute(sql, values)
-            
-            #values = [(name,email,department,salary,datetime.now().date()),(name,email,department,salary,datetime.now().date())]
+            if filename:
+                sql = "INSERT INTO posts (title,content,filename,created_at,userid) values (%s,%s,%s,%s,%s)"
+                values = (title,content,filename,datetime.now(),userid)
+                self.cursor.execute(sql, values)
+            else:
+                sql = "INSERT INTO posts (title,content,created_at,userid) values (%s,%s,%s,%s)"
+                values = (title,content,datetime.now(),userid)
+                self.cursor.execute(sql, values)
+           #values = [(name,email,department,salary,datetime.now().date()),(name,email,department,salary,datetime.now().date())]
             #self.cursor.executemany(sql, values)            
             
             self.connection.commit()
@@ -520,7 +524,7 @@ class DBManager:
         try:
             self.connect()
             sql = """
-            INSERT INTO Event_Participants (participant_id,event_id,registration_time)
+            INSERT INTO event_participants (participant_id,event_id,registration_time)
             VALUES (%s, %s, %s)
             """
             values = (user_id,event_id, datetime.now())            

@@ -168,7 +168,7 @@
         <hr>
         <!-- HTML을 안전하게 렌더링 -->
         <div id="content-container"> 
-            {{ event.contents|safe }}
+            {{ content|safe }}
         </div> <!-- safe를 넣어야 html태그요소가 html서식을 적용한상태로 출력이된다고함-->
 
         <hr>
@@ -212,7 +212,7 @@
                 </form>
                 <form action="#" method="POST">
                     <button type="submit">삭제</button>
-                </form> -->
+                </form> -->{% if event_p.participant_id==session['userid'] %}
                 <form action="{{ url_for('approve_participant') }}" method="POST">
                     <input type="hidden" name="participant_id" value="{{ participant.participant_id }}">
                     <input type="hidden" name="event_id" value="{{ participant.event_id }}">
@@ -231,6 +231,7 @@
                     <input type="hidden" name="event_id" value="{{ participant.event_id }}">
                     <button type="submit">삭제</button>
                 </form>
+                {% endif %}
             </div>
         </div>
     {% endfor %}
@@ -253,9 +254,9 @@
         <!-- 수정 및 삭제 버튼 -->
         <div class="row">
             <div class="col-md-12">
-                <a href="{{ url_for('edit_event', id=event.id) }}" class="btn btn-primary">이벤트 수정</a>
+                {% if event_p.participant_id==session['userid'] %}<a href="{{ url_for('edit_event', id=event.id) }}" class="btn btn-primary">이벤트 수정</a>{% endif %}
                 <a href="{{ url_for('event') }}" class="btn btn-secondary">이벤트 목록</a>
-                <a href="{{ url_for('deleting_event', id=event.id) }}" class="btn btn-danger">이벤트 삭제</a>
+                {% if event_p.participant_id==session['userid'] %}<a href="{{ url_for('deleting_event', id=event.id) }}" class="btn btn-danger">이벤트 삭제</a>{% endif %}
                 <a href="{{ url_for('join_event', event_id=event.id,user_id=session['userid']) }}" class="btn btn-primary">이벤트 참여</a>
             </div>
         </div>

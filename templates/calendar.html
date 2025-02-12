@@ -1,61 +1,95 @@
 {% extends 'base.html' %}
 
 {% block stylesheet %}
-<style>.event-item {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 10px;
-    border-radius: 5px;
-  }
-  
-  .event-image {
-    width: 100%;  /* 이미지의 크기를 전체로 맞추기 */
-    height: 200px;  /* 고정된 높이 */
-    object-fit: cover;  /* 이미지 크기에 맞게 잘라내기 */
-  }
-  
-  .event-details {
-    text-align: center;
-    padding-top: 10px;
-  }
+<style>
   
 /* 그리드 시스템에서 각 항목에 마진 추가 */
 .col-md-4 {
   padding: 10px;
 }
+  /* 이벤트 리스트 컨테이너 */
+  #event-list {
+    display: flex;
+    flex-wrap: wrap; /* 여러 줄로 감싸기 */
+    gap: 20px; /* 항목 간 간격 */
+    justify-content: flex-start; /* 항목을 왼쪽부터 차례대로 배치 */
+    margin: 0 auto; /* 중앙 정렬 */
+  }
 
-/* 각 이벤트 항목을 일정 크기로 유지 */
-.event-details {
-  text-align: center; /* 텍스트 중앙 정렬 */
-  margin-top: 10px;
-}
+  /* 각 이벤트 항목 */
+  .event-item {
+    width: calc(33.33% - 20px); /* 한 줄에 3개씩 배치, 간격을 고려하여 너비 계산 */
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    background-color: #fff; /* 배경색 */
+    border-radius: 8px; /* 모서리 둥글게 */
+    overflow: hidden; /* 내부 내용이 넘치지 않도록 처리 */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 섀도우 효과 */
+  }
 
-.event-item strong {
-  display: block;
-  font-size: 16px;
-  margin-bottom: 5px;
-}
+  /* 이미지 영역 */
+  .event-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+
+  /* 이벤트 세부 내용 */
+  .event-details {
+    text-align: center;
+    padding: 10px;
+  }
+
+  /* 이벤트 제목 */
+  .event-details strong {
+    font-size: 16px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #0056b3;
+  }
+
+  /* 이벤트 날짜 */
+  .event-details small {
+    font-size: 14px;
+    color: #888;
+  }
+
+  /* 반응형 디자인 - 작은 화면에서 2개 또는 1개씩 표시 */
+  @media (max-width: 768px) {
+    .event-item {
+      width: calc(50% - 20px); /* 화면이 작을 경우 두 개씩 배치 */
+    }
+  }
+
+  @media (max-width: 480px) {
+    .event-item {
+      width: 100%; /* 화면이 더 작으면 한 개씩 배치 */
+    }
+  }
+
 
 
     table {
-        width: 100%;
-        border-collapse: collapse;
+        width: 100%; /* 테이블의 너비를 전체로 설정 */
+        table-layout: fixed; /* 셀의 크기를 일정하게 고정 */
+        border-collapse: collapse; /* 셀의 테두리를 합쳐서 표시 */
+    }
+    th, td {
+        width: 14.28%; /* 7일이므로 각 셀의 너비를 100% / 7 = 14.28%로 설정 */
+        height: 100px; /* 각 셀의 높이를 100px로 설정 (원하는 크기로 조정 가능) */
+        text-align: center; /* 텍스트를 중앙 정렬 */
+        vertical-align: middle; /* 세로 중앙 정렬 */
+        border: 1px solid #ddd; /* 셀의 테두리 설정 */
+    }
+    td.empty {
+        background-color: #f0f0f0; /* 빈 셀을 구분하기 위해 색상 지정 */
+    }
+    .clickable-day {
+        cursor: pointer; /* 클릭 가능한 날짜 표시 */
     }
 
-    th,
-    td {
-        padding: 10px;
-        text-align: center;
-        border: 1px solid #ccc;
-    }
-
-    th {
-        background-color: #f0f0f0;
-    }
-
-    td {
-        background-color: #f9f9f9;
-    }
 
     .empty {
         background-color: #e0e0e0;
@@ -88,11 +122,12 @@
 
 {% block main %}
 
-    <h1>{{ year }}년 {{ month }}월</h1>
-
-    <!-- "이전 달" 및 "다음 달" 링크 -->
-    <a href="{{ url_for('show_calendar', year=year, month=month-1) }}">이전 달</a>
-    <a href="{{ url_for('show_calendar', year=year, month=month+1) }}">다음 달</a>
+    <h1>{{ year }}년 {{ month }}월</h1><!-- 이전 달 링크 -->
+    <a href="{{ url_for('show_calendar', year=year - 1 if month == 1 else year, month=12 if month == 1 else month - 1) }}">이전 달</a>
+    
+    <!-- 다음 달 링크 -->
+    <a href="{{ url_for('show_calendar', year=year + 1 if month == 12 else year, month=1 if month == 12 else month + 1) }}">다음 달</a>
+    
 
     <table>
         <thead>
@@ -114,7 +149,7 @@
                     {% if day != 0 %}
                     <!-- 클릭 가능한 날짜 요소 -->
                     <strong class="clickable-day" data-day="{{ day }}" data-month="{{ month }}" data-year="{{ year }}">
-                        {{ day }}
+                        {{ "{:04d}-{:02d}-{:02d}".format(year, month, day) }}
                     </strong>
 
                     <!-- 해당 날짜에 해당하는 이벤트를 표시할 영역 -->
@@ -142,32 +177,46 @@
 {% block script %}
 <script>document.querySelectorAll('.clickable-day').forEach(function(dayElement) {
     dayElement.addEventListener('click', function() {
-      const day = this.dataset.day;
-      const month = this.dataset.month;
-      const year = this.dataset.year;
-      console.log("날짜 클릭됨:", day, month, year);
-  
-      // 날짜 클릭 시, 해당 날짜에 대한 이벤트를 가져오기 위한 AJAX 요청
-      fetch(`/get_events_for_date?day=${day}&month=${month}&year=${year}`)
-        .then(response => response.json())
-        .then(data => {
-          console.log("이벤트 데이터:", data.events);
-          const eventListContainer = document.getElementById('event-list');
-          
-          // 이전에 렌더링된 이벤트 리스트 비우기
-          eventListContainer.innerHTML = '';
-  
-          // 한 번에 3개씩 그리드로 보여줄 수 있도록 row 클래스를 한 번만 추가
-          const rowElement = document.createElement('div');
-          rowElement.classList.add('row');  // row 클래스를 추가
-  
-          // 이벤트가 있다면 각 이벤트를 HTML로 렌더링
-          data.events.forEach(event => {
-            // filename이 있을 경우 파일명을 포함하여 렌더링
-            let eventHtml = `
-                            <div class="event-item">
-                                <div class="event-columns">
-                                <!-- 이미지 부분 -->
+        let day = parseInt(this.dataset.day);  // 클릭된 날짜
+        let month = parseInt(this.dataset.month);  // 클릭된 월
+        let year = parseInt(this.dataset.year);  // 클릭된 년도
+
+        console.log("날짜 클릭됨:", day, month, year);
+
+        // 월이 1일 경우, 이전 달은 12월로 이동하고, 년도는 1 감소
+        if (month === 1 && day < 1) {
+            month = 12;
+            year -= 1;  // 이전 년도로 이동
+        } 
+        // 월이 12일 경우, 다음 달은 1월로 이동하고, 년도는 1 증가
+        else if (month === 12 && day > 31) {
+            month = 1;
+            year += 1;  // 다음 년도로 이동
+        }
+        // 월 범위 조정 (1~12월 사이로)
+        else if (month < 1) {
+            month = 12;
+            year -= 1;
+        } else if (month > 12) {
+            month = 1;
+            year += 1;
+        }
+
+        // 날짜 클릭 시, 해당 날짜에 대한 이벤트를 가져오기 위한 AJAX 요청
+        fetch(`/get_events_for_date?day=${day}&month=${month}&year=${year}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log("이벤트 데이터:", data.events);
+                const eventListContainer = document.getElementById('event-list');
+                
+                // 이전에 렌더링된 이벤트 리스트 비우기
+                eventListContainer.innerHTML = '';
+
+                // 이벤트가 있다면 각 이벤트를 HTML로 렌더링
+                data.events.forEach(event => {
+                    const eventHtml = `
+                        <div class="event-item">
+                            <div class="event-columns">
                                 ${event.filename ? 
                                     `<a href="/event/${event.id}">
                                         <img src="${window.location.origin}/static/uploads/${event.filename}" alt="${event.title}" class="event-image" />
@@ -176,31 +225,25 @@
                                         <img src="${window.location.origin}/static/uploads/thanos-gangnam-style.gif" alt="No Image" class="event-image" />
                                     </a>`
                                 }
-
-                                <!-- 텍스트 부분 -->
                                 <div class="event-details">
                                     <a href="/event/${event.id}">
-                                    <strong>${event.title}</strong>
+                                        <strong>${event.title}</strong>
                                     </a>
                                     <strong>${new Date(event.start_date).toLocaleDateString('en-GB')}</strong>
                                 </div>
-                                </div>
                             </div>
-                            `;
-  
-            // 렌더링된 HTML을 row에 추가
-            rowElement.innerHTML += eventHtml;  // 각 이벤트의 HTML을 row 내부에 추가
-          });
-  
-          // eventListContainer에 rowElement를 추가
-          eventListContainer.appendChild(rowElement);
-        })
-        .catch(error => {
-          console.error("이벤트를 불러오는 중 오류가 발생했습니다:", error);
-        });
+                        </div>
+                    `;
+                    // 렌더링된 HTML을 eventListContainer에 추가
+                    eventListContainer.innerHTML += eventHtml;
+                });
+            })
+            .catch(error => {
+                console.error("이벤트를 불러오는 중 오류가 발생했습니다:", error);
+            });
     });
-  });
-  
+});
+
 
   </script>
   

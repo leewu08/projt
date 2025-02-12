@@ -5,6 +5,7 @@ import calendar
 from models import DBManager
 from flask import  flash,session
 import math
+
 import jinja2
 # from datetime import datetime
 
@@ -63,7 +64,7 @@ def add_post():
         
         if filename:
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            
+         
         if manager.insert_post(title,content,filename,userid):
             return redirect(url_for('post'))
         return "게시글 추가 실패", 400        
@@ -377,27 +378,31 @@ def view_event(id):
     event_p=manager.event_participant_view(id)#이거는 이벤트참여자의 정보(select * from event_participants)
     event_pp=manager.count_event_participants(id)#이거는 이벤트참여자 참여수( 카운트)
     
-    content = event.get('content')  # 딕셔너리에서 'content'를 가져오기 #야 이거 콘텐츠에 들어가잇는거 b'이 딴식으로 들어가서 한글로되어있는거 디코딩이 안됨 해결해야해'
+    contents = event.get('contents') ## contents 가 none 일경우에 너무 피곤함 그래서 아래 소스 추가
 
-    # 'content' 내의 이미지 경로를 정적 경로로 수정
+    if contents:  # contents가 None이 아니면 
+        # contents가 바이트 문자열인 경우에만 decode를 실행
+        if isinstance(contents, bytes):
+            content = contents.decode('utf-8', 'ignore')
+        else:
+            content = contents  # 이미 문자열이면 그대로 사용
+    else:
+        content = ''  # contents가 None인 경우 빈 문자열로 설정
+
+    # 'content'가 None이 아니고 빈 문자열이 아닐 경우에만 이미지 경로 수정
     if content:
-        from flask import url_for
         content = content.replace('src="uploads/', 'src="' + url_for('static', filename='uploads/'))
 
-    return render_template('event_view.html',event=event,now=now,eventmanager=eventmanager,location=location,event_p=event_p,event_pp=event_pp,content=content)
-
-
+    return render_template('event_view.html', event=event, now=now, eventmanager=eventmanager, location=location, event_p=event_p, event_pp=event_pp, content=content)
 @app.route('/join/<int:event_id>/<string:user_id>')
 def join_event(event_id,user_id):
-    event=manager.get_event_by_id(event_id)
-    user=manager.get_data_by_userid(user_id)
-    
-    if not event:
-        return "Event not found", 404
-    if not user:
-        return "User not found", 404
-    
-    success=manager.add_user_to_event(int(event['id']),user['userid'])
+    # event=manager.get_event_by_id(event_id)
+    # user=manager.get_data_by_userid(user_id)
+    # if not event:
+    #     return "Event not found", 404
+    # if not user:
+    #     return "User not found", 404
+    success=manager.add_user_to_event(event_id,user_id)
     
     
     if success:
@@ -458,6 +463,12 @@ def edit_event(id):
     location= manager.get_event(id)
     
     event = manager.get_event_by_id(id)
+    
+    content = (event.get('contents')).decode('utf-8')  
+    
+     # 'content' 내의 이미지 경로를 정적 경로로 수정
+    if content:
+        content = content.replace('src="uploads/', 'src="' + url_for('static', filename='uploads/'))
     if request.method == 'POST':
         title = request.form['title']
         description = request.form['description']
@@ -476,6 +487,7 @@ def edit_event(id):
         longitude = request.form['longitude']
         contents=request.form['contents']
 
+        
 
         if filename:
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -484,7 +496,7 @@ def edit_event(id):
             
             return redirect(url_for('view_event', id=id))
         return "게시글 추가 실패", 400        
-    return render_template('event_edit.html',event=event,location=location)
+    return render_template('event_edit.html',event=event,location=location,content=content)
 
 @app.route('/event/delete/<int:id>')  #게시글 삭제
 def deleting_event(id):
